@@ -12,6 +12,10 @@ exports.login = function login (permissions, s, f) {
   exec(s, f, 'FacebookConnectPlugin', 'login', permissions)
 }
 
+exports.showMessage = function login (params, s, f) {
+  exec(s, f, 'FacebookConnectPlugin', 'showMessage', params)
+}
+
 exports.logEvent = function logEvent (name, params, valueToSum, s, f) {
   // Prevent NSNulls getting into iOS, messes up our [command.argument count]
   if (!params && !valueToSum) {
