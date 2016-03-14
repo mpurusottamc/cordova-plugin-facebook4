@@ -241,7 +241,7 @@
     UIImage* image = [[UIImage alloc] initWithData: imgData];
     NSString *metadata = senderName;
 
-    AppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
+    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
     
     FBSDKMessengerShareOptions *options = [[FBSDKMessengerShareOptions alloc] init];
     // options.renderAsSticker = YES;

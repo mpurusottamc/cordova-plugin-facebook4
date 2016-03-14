@@ -152,6 +152,12 @@
         <framework src="src/ios/FBSDKShareKit.framework" custom="true" />
         <framework src="src/ios/FBSDKMessengerShareKit.framework" custom="true" />
 
+        <!-- System frameworks -->
+        <framework src="libsqlite3.dylib" />
+        <framework src="Social.framework" weak="true" />
+        <framework src="Accounts.framework" weak="true" />
+        <framework src="Security.framework" weak="true" />
+
     </platform>
 
     <!-- browser -->
