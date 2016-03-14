@@ -12,7 +12,14 @@
 #import "FacebookConnectPlugin.h"
 #import <objc/runtime.h>
 
-@interface FacebookConnectPlugin ()
+@interface FacebookConnectPlugin () <FBSDKMessengerURLHandlerDelegate>
+
+// Begin - Messenger Properties
+@property FBSDKMessengerURLHandler *messengerUrlHandler;
+@property FBSDKMessengerURLHandlerOpenFromComposerContext *composerContext;
+@property FBSDKMessengerURLHandlerReplyContext *replyContext;
+- (FBSDKMessengerContext *) getContextForShareMode;
+// End - Messenger Properties
 
 @property (strong, nonatomic) NSString* dialogCallbackId;
 @property (strong, nonatomic) FBSDKLoginManager *loginManager;
@@ -37,6 +44,77 @@
                                              selector:@selector(applicationDidBecomeActive:)
                                                  name:UIApplicationDidBecomeActiveNotification object:nil];
 }
+
+// Begin - Messenger AppDelegate methods
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    _messengerUrlHandler = [[FBSDKMessengerURLHandler alloc] init];
+    _messengerUrlHandler.delegate = self;
+    
+    // Override point for customization after application launch.
+    return YES;
+}
+
+- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation {
+    // Check if the handler knows what to do with this url
+    if ([_messengerUrlHandler canOpenURL:url sourceApplication:sourceApplication]) {
+        // Handle the url
+        [_messengerUrlHandler openURL:url sourceApplication:sourceApplication];
+    }
+    
+    return YES;
+}
+
+/*
+ * When people enter your app through the composer in Messenger,
+ * this delegate function will be called.
+ */
+- (void)messengerURLHandler:(FBSDKMessengerURLHandler *)messengerURLHandler
+didHandleOpenFromComposerWithContext:(FBSDKMessengerURLHandlerOpenFromComposerContext *)context;
+{
+    _composerContext = context;
+}
+
+/*
+ * When people enter your app through the "Reply" button on content
+ * this delegate function will be called.
+ */
+- (void)messengerURLHandler:(FBSDKMessengerURLHandler *)messengerURLHandler
+  didHandleReplyWithContext:(FBSDKMessengerURLHandlerReplyContext *)context;
+{
+    _replyContext = context;
+}
+
+// helper enum i made to define the state
+enum MessengerShareMode { MessengerShareModeSend,
+    MessengerShareModeComposer,
+    MessengerShareModeReply};
+
+// shareMode holds state indicating which flow the user is in.
+// Return the corresponding FBSDKMessengerContext based on that state.
+enum MessengerShareMode shareMode;
+
+- (FBSDKMessengerContext *) getContextForShareMode
+{
+    // shareMode holds state indicating which flow the user is in.
+    // Return the corresponding FBSDKMessengerContext based on that state.
+    
+    if (shareMode == MessengerShareModeSend) {
+        // Force a send flow by returning a broadcast context.
+        return [[FBSDKMessengerBroadcastContext alloc] init];
+        
+    } else if (shareMode == MessengerShareModeComposer) {
+        // Force the composer flow by returning the composer context.
+        
+        return _composerContext;
+    } else if (shareMode == MessengerShareModeReply) {
+        // Force the reply flow by returning the reply context.
+        return _replyContext;
+    }
+    
+    
+    return nil;
+}
+// End - Messenger AppDelegate methods
 
 - (void) applicationDidFinishLaunching:(NSNotification *) notification {
     NSDictionary* launchOptions = notification.userInfo;
@@ -241,12 +319,10 @@
     UIImage* image = [[UIImage alloc] initWithData: imgData];
     NSString *metadata = senderName;
 
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-    
     FBSDKMessengerShareOptions *options = [[FBSDKMessengerShareOptions alloc] init];
     // options.renderAsSticker = YES;
     options.metadata = metadata;
-    options.contextOverride = [appDelegate getContextForShareMode];
+    options.contextOverride = [self getContextForShareMode];
     
     [FBSDKMessengerSharer shareImage:image withOptions:options];
 }
