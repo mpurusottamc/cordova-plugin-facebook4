@@ -17,4 +17,6 @@
 @property FBSDKMessengerURLHandlerOpenFromComposerContext *composerContext;
 @property FBSDKMessengerURLHandlerReplyContext *replyContext;
 
+- (FBSDKMessengerContext *) getContextForShareMode;
+
 @end

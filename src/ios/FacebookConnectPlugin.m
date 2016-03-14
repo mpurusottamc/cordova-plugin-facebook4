@@ -240,11 +240,13 @@
     NSData *imgData = [[NSData alloc] initWithContentsOfURL: str];
     UIImage* image = [[UIImage alloc] initWithData: imgData];
     NSString *metadata = senderName;
+
+    AppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
     
     FBSDKMessengerShareOptions *options = [[FBSDKMessengerShareOptions alloc] init];
     // options.renderAsSticker = YES;
     options.metadata = metadata;
-    options.contextOverride = [self getContextForShareMode];
+    options.contextOverride = [appDelegate getContextForShareMode];
     
     [FBSDKMessengerSharer shareImage:image withOptions:options];
 }
@@ -727,40 +729,6 @@ void FBMethodSwizzle(Class c, SEL originalSelector) {
     // but will cause you to see JavaScript errors if you do not have window.handleOpenURL defined:
     // https://github.com/Wizcorp/phonegap-facebook-plugin/issues/703#issuecomment-63748816
     NSLog(@"FB handle url: %@", url);
-}
-
-// helper enum i made to define the state
-enum MessengerShareMode { MessengerShareModeSend,
-    MessengerShareModeComposer,
-    MessengerShareModeReply};
-
-// shareMode holds state indicating which flow the user is in.
-// Return the corresponding FBSDKMessengerContext based on that state.
-enum MessengerShareMode shareMode;
-
-- (FBSDKMessengerContext *) getContextForShareMode
-{
-    // shareMode holds state indicating which flow the user is in.
-    // Return the corresponding FBSDKMessengerContext based on that state.
-    
-    if (shareMode == MessengerShareModeSend) {
-        // Force a send flow by returning a broadcast context.
-        return [[FBSDKMessengerBroadcastContext alloc] init];
-        
-    } else if (shareMode == MessengerShareModeComposer) {
-        // Force the composer flow by returning the composer context.
-        AppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
-
-        return [appDelegate composerContext];
-        
-    } else if (shareMode == MessengerShareModeReply) {
-        // Force the reply flow by returning the reply context.
-        AppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
-        
-        return [appDelegate replyContext];
-    }
-    
-    return nil;
 }
 
 @end

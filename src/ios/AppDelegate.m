@@ -82,4 +82,35 @@ didHandleOpenFromComposerWithContext:(FBSDKMessengerURLHandlerOpenFromComposerCo
     _replyContext = context;
 }
 
+// helper enum i made to define the state
+enum MessengerShareMode { MessengerShareModeSend,
+    MessengerShareModeComposer,
+    MessengerShareModeReply};
+
+// shareMode holds state indicating which flow the user is in.
+// Return the corresponding FBSDKMessengerContext based on that state.
+enum MessengerShareMode shareMode;
+
+- (FBSDKMessengerContext *) getContextForShareMode
+{
+    // shareMode holds state indicating which flow the user is in.
+    // Return the corresponding FBSDKMessengerContext based on that state.
+    
+    if (shareMode == MessengerShareModeSend) {
+        // Force a send flow by returning a broadcast context.
+        return [[FBSDKMessengerBroadcastContext alloc] init];
+        
+    } else if (shareMode == MessengerShareModeComposer) {
+        // Force the composer flow by returning the composer context.
+        
+        return _composerContext;
+    } else if (shareMode == MessengerShareModeReply) {
+        // Force the reply flow by returning the reply context.
+        return _replyContext;
+    }
+    
+    
+    return nil;
+}
+
 @end
