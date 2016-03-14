@@ -12,6 +12,7 @@
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
 #import <FBSDKLoginKit/FBSDKLoginKit.h>
 #import <FBSDKShareKit/FBSDKShareKit.h>
+#import <FBSDKMessengerShareKit/FBSDKMessengerShareKit.h>
 #import <Cordova/CDV.h>
 #import "AppDelegate.h"
 
@@ -24,6 +25,7 @@
 - (void)logout:(CDVInvokedUrlCommand *)command;
 - (void)graphApi:(CDVInvokedUrlCommand *)command;
 - (void)showMessage:(CDVInvokedUrlCommand *)command;
+- (void)shareOnMessenger:(CDVInvokedUrlCommand *)command;
 - (void)showDialog:(CDVInvokedUrlCommand *)command;
 - (void)appInvite:(CDVInvokedUrlCommand *) command;
 - (void)activateApp:(CDVInvokedUrlCommand *)command;

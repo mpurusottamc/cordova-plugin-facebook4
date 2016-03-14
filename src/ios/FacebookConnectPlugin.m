@@ -228,6 +228,22 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+- (IBAction)shareOnMessenger:(CDVInvokedUrlCommand *)command {
+    CDVPluginResult* pluginResult = nil;
+    NSString *filePath = [command.arguments objectAtIndex:0];
+    // NSString *filePath = @"https://www.outreachplatform.com/assets/outreach-logo-327cbd762e5bacf48a8b3ccc80fb3aa114048ac439d573fd54d6ce6819ddd5ec.png";
+    
+    NSURL *str = [[NSURL alloc] initWithString:filePath];
+    
+    NSData *imgData = [[NSData alloc] initWithContentsOfURL: str];
+    UIImage* img = [[UIImage alloc] initWithData: imgData];
+    
+    FBSDKMessengerShareOptions *options = [[FBSDKMessengerShareOptions alloc] init];
+    options.renderAsSticker = YES;
+    
+    [FBSDKMessengerSharer shareImage:img withOptions:options];
+}
+
 - (void) showDialog:(CDVInvokedUrlCommand*)command
 {
     if ([command.arguments count] == 0) {
