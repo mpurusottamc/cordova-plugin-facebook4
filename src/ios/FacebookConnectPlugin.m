@@ -230,18 +230,23 @@
 
 - (IBAction)shareOnMessenger:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
-    NSString *filePath = [command.arguments objectAtIndex:0];
+
     // NSString *filePath = @"https://www.outreachplatform.com/assets/outreach-logo-327cbd762e5bacf48a8b3ccc80fb3aa114048ac439d573fd54d6ce6819ddd5ec.png";
+    NSString *filePath = [command.arguments objectAtIndex:0];
+    NSString *senderName = [command.arguments objectAtIndex:1];
     
     NSURL *str = [[NSURL alloc] initWithString:filePath];
     
     NSData *imgData = [[NSData alloc] initWithContentsOfURL: str];
-    UIImage* img = [[UIImage alloc] initWithData: imgData];
+    UIImage* image = [[UIImage alloc] initWithData: imgData];
+    NSString *metadata = @"test metadata";
     
     FBSDKMessengerShareOptions *options = [[FBSDKMessengerShareOptions alloc] init];
-    options.renderAsSticker = YES;
+    // options.renderAsSticker = YES;
+    options.metadata = metadata;
+    options.contextOverride = [self getContextForShareMode];
     
-    [FBSDKMessengerSharer shareImage:img withOptions:options];
+    [FBSDKMessengerSharer shareImage:image withOptions:options];
 }
 
 - (void) showDialog:(CDVInvokedUrlCommand*)command
@@ -723,4 +728,39 @@ void FBMethodSwizzle(Class c, SEL originalSelector) {
     // https://github.com/Wizcorp/phonegap-facebook-plugin/issues/703#issuecomment-63748816
     NSLog(@"FB handle url: %@", url);
 }
+
+// helper enum i made to define the state
+enum MessengerShareMode { MessengerShareModeSend,
+    MessengerShareModeComposer,
+    MessengerShareModeReply};
+
+// shareMode holds state indicating which flow the user is in.
+// Return the corresponding FBSDKMessengerContext based on that state.
+enum MessengerShareMode shareMode;
+
+- (FBSDKMessengerContext *) getContextForShareMode
+{
+    // shareMode holds state indicating which flow the user is in.
+    // Return the corresponding FBSDKMessengerContext based on that state.
+    
+    if (shareMode == MessengerShareModeSend) {
+        // Force a send flow by returning a broadcast context.
+        return [[FBSDKMessengerBroadcastContext alloc] init];
+        
+    } else if (shareMode == MessengerShareModeComposer) {
+        // Force the composer flow by returning the composer context.
+        AppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
+
+        return [appDelegate composerContext];
+        
+    } else if (shareMode == MessengerShareModeReply) {
+        // Force the reply flow by returning the reply context.
+        AppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
+        
+        return [appDelegate replyContext];
+    }
+    
+    return nil;
+}
+
 @end
