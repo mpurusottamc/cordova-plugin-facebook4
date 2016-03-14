@@ -55,6 +55,15 @@
 }
 
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation {
+    if (!url) {
+        return NO;
+    }
+
+    // iOS9 - https://github.com/ccsoft/cordova-facebook
+    NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                                 sourceApplication, @"sourceApplication", nil];
+    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:CDVPluginHandleOpenURLNotification object:url userInfo:dict]];
+
     // Check if the handler knows what to do with this url
     if ([_messengerUrlHandler canOpenURL:url sourceApplication:sourceApplication]) {
         // Handle the url
