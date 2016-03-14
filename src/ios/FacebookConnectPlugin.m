@@ -239,7 +239,7 @@
     
     NSData *imgData = [[NSData alloc] initWithContentsOfURL: str];
     UIImage* image = [[UIImage alloc] initWithData: imgData];
-    NSString *metadata = @"test metadata";
+    NSString *metadata = senderName;
     
     FBSDKMessengerShareOptions *options = [[FBSDKMessengerShareOptions alloc] init];
     // options.renderAsSticker = YES;
