@@ -48,6 +48,7 @@ import org.json.JSONObject;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URLDecoder;
+import java.util.List;
 import java.util.Collection;
 import java.util.Currency;
 import java.util.Date;
@@ -84,6 +85,8 @@ public class ConnectPlugin extends CordovaPlugin {
     private GameRequestDialog gameRequestDialog;
     private AppInviteDialog appInviteDialog;
     private MessageDialog messageDialog;
+    private MessengerThreadParams mThreadParams;
+    private boolean mPicking;
 
     @Override
     protected void pluginInitialize() {
@@ -250,6 +253,20 @@ public class ConnectPlugin extends CordovaPlugin {
                 handleError(e, showDialogContext);
             }
         });
+
+        // If we received Intent.ACTION_PICK from Messenger, we were launched from a composer shortcut
+        // or the reply flow.
+        Intent intent = cordova.getActivity().getIntent();
+        if (Intent.ACTION_PICK.equals(intent.getAction())) {
+            mThreadParams = MessengerUtils.getMessengerThreadParamsForIntent(intent);
+            mPicking = true;
+
+            String metadata = mThreadParams.metadata;
+            List<String> participantIds = mThreadParams.participants;
+
+          // Note, if mThreadParams is non-null, it means the activity was launched from Messenger.
+          // It will contain the metadata associated with the original content, if there was content.
+        }
     }
 
     @Override
@@ -712,8 +729,11 @@ public class ConnectPlugin extends CordovaPlugin {
         // contentUri points to the content being shared to Messenger
         ShareToMessengerParams shareToMessengerParams = ShareToMessengerParams.newBuilder(imageURI, mimeType).setMetaData(metadata).build();
 
-        // Sharing from an Activity
-        MessengerUtils.shareToMessenger(cordova.getActivity(), REQUEST_CODE_SHARE_TO_MESSENGER, shareToMessengerParams);
+        if (mPicking) {
+            MessengerUtils.finishShareToMessenger(cordova.getActivity(), shareToMessengerParams);
+        } else {
+            MessengerUtils.shareToMessenger(cordova.getActivity(), REQUEST_CODE_SHARE_TO_MESSENGER, shareToMessengerParams);
+        }
     }
 
     private void executeLogin(JSONArray args, CallbackContext callbackContext) throws JSONException {
