@@ -713,7 +713,7 @@ public class ConnectPlugin extends CordovaPlugin {
         ShareToMessengerParams shareToMessengerParams = ShareToMessengerParams.newBuilder(imageURI, mimeType).setMetaData(metadata).build();
 
         // Sharing from an Activity
-        MessengerUtils.shareToMessenger(this, REQUEST_CODE_SHARE_TO_MESSENGER, shareToMessengerParams);
+        MessengerUtils.shareToMessenger(cordova.getActivity(), REQUEST_CODE_SHARE_TO_MESSENGER, shareToMessengerParams);
     }
 
     private void executeLogin(JSONArray args, CallbackContext callbackContext) throws JSONException {
