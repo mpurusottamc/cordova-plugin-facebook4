@@ -705,8 +705,10 @@ public class ConnectPlugin extends CordovaPlugin {
         String metadata = senderName;
         String mimeType = "image/png";
 
+        Uri imageURI = Uri.parse(filePath);
+
         // contentUri points to the content being shared to Messenger
-        ShareToMessengerParams shareToMessengerParams = ShareToMessengerParams.newBuilder(filePath, mimeType).setMetaData(metadata).build();
+        ShareToMessengerParams shareToMessengerParams = ShareToMessengerParams.newBuilder(imageURI, mimeType).setMetaData(metadata).build();
 
         // Sharing from an Activity
         MessengerUtils.shareToMessenger(this, REQUEST_CODE_SHARE_TO_MESSENGER, shareToMessengerParams);
