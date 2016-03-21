@@ -32,6 +32,12 @@ import com.facebook.share.widget.MessageDialog;
 import com.facebook.share.widget.ShareDialog;
 import com.facebook.share.widget.AppInviteDialog;
 
+// Messenger code - start
+import com.facebook.messenger.MessengerUtils;
+import com.facebook.messenger.MessengerThreadParams;
+import com.facebook.messenger.ShareToMessengerParams;
+// Messenger code - end
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
@@ -688,6 +694,22 @@ public class ConnectPlugin extends CordovaPlugin {
             logger.logEvent(eventName, value, parameters);
             callbackContext.success();
         }
+    }
+
+    private void executeShareOnMessenger(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Log.d(TAG, "Share on Messenger");
+
+        String filePath = args.getString(0);
+        String senderName = args.getString(1);
+
+        String metadata = senderName;
+        String mimeType = "image/png";
+
+        // contentUri points to the content being shared to Messenger
+        ShareToMessengerParams shareToMessengerParams = ShareToMessengerParams.newBuilder(filePath, mimeType).setMetaData(metadata).build();
+
+        // Sharing from an Activity
+        MessengerUtils.shareToMessenger(this, REQUEST_CODE_SHARE_TO_MESSENGER, shareToMessengerParams);
     }
 
     private void executeLogin(JSONArray args, CallbackContext callbackContext) throws JSONException {

@@ -154,7 +154,9 @@
             <string>fbapi20150629</string>
             <string>fb-messenger-api</string>
             <string>fb-messenger-api20140430</string>
-            <string>fb-messenger-platform-20150128</string>            
+            <string>fb-messenger-platform-20150128</string>
+            <string>fb-messenger-platform-20150218</string>
+            <string>fb-messenger-platform-20150305</string>
           </array>
         </config-file>
 
