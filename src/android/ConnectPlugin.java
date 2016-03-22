@@ -357,6 +357,10 @@ public class ConnectPlugin extends CordovaPlugin {
             });
             
             return true;
+        } else if (action.equals("shareOnMessenger")) {
+            executeShareOnMessenger(args, callbackContext);
+
+            return true;
         }
         return false;
     }
