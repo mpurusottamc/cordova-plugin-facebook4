@@ -4,6 +4,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.provider.MediaStore.Images;
+import android.provider.MediaStore.Images.Media;
 
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
@@ -46,8 +50,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URLDecoder;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 import java.util.Collection;
 import java.util.Currency;
@@ -719,6 +727,21 @@ public class ConnectPlugin extends CordovaPlugin {
         }
     }
 
+    private Bitmap getBitmapFromURL(String src) {
+        try {
+            URL url = new URL(src);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setDoInput(true);
+            connection.connect();
+            InputStream input = connection.getInputStream();
+            Bitmap myBitmap = BitmapFactory.decodeStream(input);
+            return myBitmap;
+        } catch (IOException e) {
+            // Log exception
+            return null;
+        }
+    }
+
     private void executeShareOnMessenger(JSONArray args, CallbackContext callbackContext) throws JSONException {
         Log.d(TAG, "Share on Messenger");
 
@@ -728,7 +751,13 @@ public class ConnectPlugin extends CordovaPlugin {
         String metadata = senderName;
         String mimeType = "image/png";
 
-        Uri imageURI = Uri.parse(filePath);
+        Bitmap bmp = getBitmapFromURL(filePath);
+
+        String path = Images.Media.insertImage(cordova.getActivity().getContentResolver(), bmp, metadata, null);
+
+        Uri imageURI = Uri.parse(path);
+
+        // Uri imageURI = Uri.parse(filePath);
 
         // contentUri points to the content being shared to Messenger
         ShareToMessengerParams shareToMessengerParams = ShareToMessengerParams.newBuilder(imageURI, mimeType).setMetaData(metadata).build();
