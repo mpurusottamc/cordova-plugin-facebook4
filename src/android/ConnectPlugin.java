@@ -8,6 +8,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.Media;
+import android.os.NetworkOnMainThreadException;
+import android.os.AsyncTask;
 
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
@@ -65,6 +67,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class ConnectPlugin extends CordovaPlugin {
 
@@ -735,8 +738,22 @@ public class ConnectPlugin extends CordovaPlugin {
             connection.connect();
             InputStream input = connection.getInputStream();
             Bitmap myBitmap = BitmapFactory.decodeStream(input);
+
+            Log.d(TAG, "getBitmapFromURL: bitmap url generated");
+
             return myBitmap;
+        // } catch (NetworkOnMainThreadException ne) {
+            // Log.e(TAG, "getBitmapFromURL: Exception ToString - "+ ne.toString());
+            // Log.e(TAG, "getBitmapFromURL: Exception Message - "+ ne.getMessage());
+            // Log.e(TAG, "getBitmapFromURL: Exception Stack Trace - "+ Log.getStackTrace(ne));
+
+            // Log exception
+            // return null;
         } catch (IOException e) {
+            Log.e(TAG, "getBitmapFromURL: Exception ToString - "+ e.toString());
+            // Log.e(TAG, "getBitmapFromURL: Exception Message - "+ e.getMessage());
+            // Log.e(TAG, "getBitmapFromURL: Exception Stack Trace - "+ e.getStackTrace());
+
             // Log exception
             return null;
         }
@@ -748,24 +765,44 @@ public class ConnectPlugin extends CordovaPlugin {
         String filePath = args.getString(0);
         String senderName = args.getString(1);
 
+        Log.d(TAG, "executeShareOnMessenger: filePath - "+ filePath + " senderName - "+ senderName);
+
         String metadata = senderName;
         String mimeType = "image/png";
 
-        Bitmap bmp = getBitmapFromURL(filePath);
+        Bitmap bmp = null;
+        try {
+            bmp = new DownloadImageTask().execute(filePath).get(5000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
 
-        String path = Images.Media.insertImage(cordova.getActivity().getContentResolver(), bmp, metadata, null);
+        }
 
-        Uri imageURI = Uri.parse(path);
+        // Bitmap bmp = getBitmapFromURL(filePath);
+        // Bitmap bmp = null;
 
-        // Uri imageURI = Uri.parse(filePath);
-
-        // contentUri points to the content being shared to Messenger
-        ShareToMessengerParams shareToMessengerParams = ShareToMessengerParams.newBuilder(imageURI, mimeType).setMetaData(metadata).build();
-
-        if (mPicking) {
-            MessengerUtils.finishShareToMessenger(cordova.getActivity(), shareToMessengerParams);
+        if (bmp == null) {
+            callbackContext.error("could not generate Bitmap from Image File");
         } else {
-            MessengerUtils.shareToMessenger(cordova.getActivity(), REQUEST_CODE_SHARE_TO_MESSENGER, shareToMessengerParams);
+            Log.d(TAG, "bitmap created");
+            
+            String path = Images.Media.insertImage(cordova.getActivity().getContentResolver(), bmp, metadata, null);
+
+            Log.d(TAG, "executeShareOnMessenger: file path - "+ path);
+
+            Uri imageURI = Uri.parse(path);
+
+            // Uri imageURI = Uri.parse(filePath);
+
+            // contentUri points to the content being shared to Messenger
+            ShareToMessengerParams shareToMessengerParams = ShareToMessengerParams.newBuilder(imageURI, mimeType).setMetaData(metadata).build();
+
+            if (mPicking) {
+                MessengerUtils.finishShareToMessenger(cordova.getActivity(), shareToMessengerParams);
+            } else {
+                MessengerUtils.shareToMessenger(cordova.getActivity(), REQUEST_CODE_SHARE_TO_MESSENGER, shareToMessengerParams);
+            }
+
+            callbackContext.success("Image shared on Facebook Messenger");
         }
     }
 
@@ -1063,7 +1100,47 @@ public class ConnectPlugin extends CordovaPlugin {
                 return o.toString();
             }
         } catch (Exception ignored) {
+
         }
         return null;
+    }
+
+    private class DownloadImageTask extends AsyncTask<String, Integer, Bitmap> {
+        protected Bitmap doInBackground(String... imageURLs) {
+            try {
+                URL url = new URL(imageURLs[0]);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setDoInput(true);
+                connection.connect();
+                InputStream input = connection.getInputStream();
+                Bitmap myBitmap = BitmapFactory.decodeStream(input);
+
+                Log.d(TAG, "getBitmapFromURL: bitmap url generated");
+
+                return myBitmap;
+            // } catch (NetworkOnMainThreadException ne) {
+                // Log.e(TAG, "getBitmapFromURL: Exception ToString - "+ ne.toString());
+                // Log.e(TAG, "getBitmapFromURL: Exception Message - "+ ne.getMessage());
+                // Log.e(TAG, "getBitmapFromURL: Exception Stack Trace - "+ Log.getStackTrace(ne));
+
+                // Log exception
+                // return null;
+            } catch (IOException e) {
+                Log.e(TAG, "getBitmapFromURL: Exception - "+ e.toString());
+                // Log.e(TAG, "getBitmapFromURL: Exception Message - "+ e.getMessage());
+                // Log.e(TAG, "getBitmapFromURL: Exception Stack Trace - "+ e.getStackTrace());
+
+                // Log exception
+                return null;
+            }
+        }
+
+        protected void onProgressUpdate(Integer... progress) {
+            Log.i(TAG, "DownloadImageTask - Progress : "+ progress);
+        }
+
+        protected void onPostExecute(Bitmap bmp) {
+            Log.d(TAG, "DownloadImageTask onPostExecute: ");
+        }
     }
 }
