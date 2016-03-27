@@ -778,7 +778,7 @@ public class ConnectPlugin extends CordovaPlugin {
         try {
             bmp = new DownloadImageTask().execute(filePath).get(5000, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
-
+            Log.e(TAG, "exception while creating bitmap: "+ e);
         }
 
         // Bitmap bmp = getBitmapFromURL(filePath);
@@ -792,16 +792,18 @@ public class ConnectPlugin extends CordovaPlugin {
             Log.d(TAG, "external directory: "+ externalpath);
 
             OutputStream fOut = null;
-            File file = new File(externalpath, senderName+".png");
 
             String newPath = "";
             try {
+                Log.e(TAG, "inside save file method");
+
+                File file = new File(externalpath, senderName+".png");
                 fOut = new FileOutputStream(file);
                 bmp.compress(Bitmap.CompressFormat.PNG, 85, fOut); // saving the Bitmap to a file compressed as a JPEG with 85% compression rate
                 fOut.flush();
                 fOut.close(); // do not forget to close the stream
 
-                 newPath = Images.Media.insertImage(cordova.getActivity().getContentResolver(),file.getAbsolutePath(),file.getName(),file.getName());
+                 newPath = Images.Media.insertImage(cordova.getActivity().getContentResolver(), file.getAbsolutePath(), file.getName(), file.getName());
             } catch (Exception e) {
                 Log.e(TAG, "exception while saving bitmap: "+ e);
             }
@@ -816,6 +818,8 @@ public class ConnectPlugin extends CordovaPlugin {
             Uri imageURI = Uri.parse(newPath);
 
             // Uri imageURI = Uri.parse(filePath);
+
+            Log.d(TAG, "start - sharing image on Facebook Messenger");
 
             // contentUri points to the content being shared to Messenger
             ShareToMessengerParams shareToMessengerParams = ShareToMessengerParams.newBuilder(imageURI, mimeType).setMetaData(metadata).build();
