@@ -10,6 +10,10 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.Media;
 import android.os.NetworkOnMainThreadException;
 import android.os.AsyncTask;
+import android.os.Environment;
+import java.io.OutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
@@ -779,17 +783,37 @@ public class ConnectPlugin extends CordovaPlugin {
 
         // Bitmap bmp = getBitmapFromURL(filePath);
         // Bitmap bmp = null;
-
         if (bmp == null) {
             callbackContext.error("could not generate Bitmap from Image File");
         } else {
             Log.d(TAG, "bitmap created");
             
-            String path = Images.Media.insertImage(cordova.getActivity().getContentResolver(), bmp, metadata, null);
+            String externalpath = Environment.getExternalStorageDirectory().toString();
+            Log.d(TAG, "external directory: "+ externalpath);
 
-            Log.d(TAG, "executeShareOnMessenger: file path - "+ path);
+            OutputStream fOut = null;
+            File file = new File(externalpath, senderName+".png");
 
-            Uri imageURI = Uri.parse(path);
+            String newPath = "";
+            try {
+                fOut = new FileOutputStream(file);
+                bmp.compress(Bitmap.CompressFormat.PNG, 85, fOut); // saving the Bitmap to a file compressed as a JPEG with 85% compression rate
+                fOut.flush();
+                fOut.close(); // do not forget to close the stream
+
+                 newPath = Images.Media.insertImage(cordova.getActivity().getContentResolver(),file.getAbsolutePath(),file.getName(),file.getName());
+            } catch (Exception e) {
+                Log.e(TAG, "exception while saving bitmap: "+ e);
+            }
+
+            Log.d(TAG, "external path: "+ newPath);
+
+            // String path = Images.Media.insertImage(cordova.getActivity().getContentResolver(), bmp, metadata, null);
+            // String path = file.getAbsolutePath();
+
+            Log.d(TAG, "executeShareOnMessenger: file path - "+ newPath);
+
+            Uri imageURI = Uri.parse(newPath);
 
             // Uri imageURI = Uri.parse(filePath);
 
