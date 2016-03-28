@@ -23,6 +23,7 @@
 
 @property (strong, nonatomic) NSString* dialogCallbackId;
 @property (strong, nonatomic) FBSDKLoginManager *loginManager;
+@property (strong, nonatomic) NSString* gameRequestDialogCallbackId;
 
 - (NSDictionary *)responseObject;
 - (NSDictionary*)parseURLParams:(NSString *)query;
@@ -267,7 +268,7 @@ enum MessengerShareMode shareMode;
         if (self.loginManager == nil) {
             self.loginManager = [[FBSDKLoginManager alloc] init];
         }
-        [self.loginManager logInWithReadPermissions:permissions fromViewController:self.viewController handler:loginHandler];
+        [self.loginManager logInWithReadPermissions:permissions fromViewController:[self topMostController] handler:loginHandler];
         return;
     }
 
@@ -383,7 +384,7 @@ enum MessengerShareMode shareMode;
 
         self.dialogCallbackId = command.callbackId;
         FBSDKShareDialog *dialog = [[FBSDKShareDialog alloc] init];
-        dialog.fromViewController = self.viewController;
+        dialog.fromViewController = [self topMostController];
         dialog.shareContent = content;
         dialog.delegate = self;
         // Adopt native share sheets with the following line
@@ -394,6 +395,7 @@ enum MessengerShareMode shareMode;
         return;
     } else if ([method isEqualToString:@"apprequests"]) {
         FBSDKGameRequestDialog *dialog = [[FBSDKGameRequestDialog alloc] init];
+        dialog.delegate = self;
         if (![dialog canShow]) {
             CDVPluginResult *pluginResult;
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
@@ -432,10 +434,9 @@ enum MessengerShareMode shareMode;
         content.recipients = params[@"to"];
         content.title = params[@"title"];
 
+        self.gameRequestDialogCallbackId = command.callbackId;
         dialog.content = content;
         [dialog show];
-        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         return;
     }
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"method not supported"];
@@ -510,7 +511,7 @@ enum MessengerShareMode shareMode;
 
         NSString *deniedPermission = nil;
         for (NSString *permission in permissions) {
-            if (![result.grantedPermissions containsObject:permissions]) {
+            if (![result.grantedPermissions containsObject:permission]) {
                 deniedPermission = permission;
                 break;
             }
@@ -547,7 +548,7 @@ enum MessengerShareMode shareMode;
 
     FBSDKAppInviteDialog *dialog = [[FBSDKAppInviteDialog alloc] init];
     if ((url || picture) && [dialog canShow]) {
-        [FBSDKAppInviteDialog showFromViewController:self.viewController withContent:content delegate:self];
+        [FBSDKAppInviteDialog showFromViewController:[self topMostController] withContent:content delegate:self];
     } else {
         result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
         [self.commandDelegate sendPluginResult:result callbackId:self.dialogCallbackId];
@@ -592,11 +593,21 @@ enum MessengerShareMode shareMode;
 
     } else if (publishPermissionFound) {
         // Only publish permissions
-        [self.loginManager logInWithPublishPermissions:permissions fromViewController:self.viewController handler:handler];
+        [self.loginManager logInWithPublishPermissions:permissions fromViewController:[self topMostController] handler:handler];
     } else {
         // Only read permissions
-        [self.loginManager logInWithReadPermissions:permissions fromViewController:self.viewController handler:handler];
+        [self.loginManager logInWithReadPermissions:permissions fromViewController:[self topMostController] handler:handler];
     }
+}
+
+- (UIViewController*) topMostController {
+    UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    
+    while (topController.presentedViewController) {
+        topController = topController.presentedViewController;
+    }
+    
+    return topController;
 }
 
 - (NSDictionary *)responseObject {
@@ -766,6 +777,55 @@ enum MessengerShareMode shareMode;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.dialogCallbackId];
     self.dialogCallbackId = nil;
     
+}
+
+
+#pragma mark - FBSDKGameRequestDialogDelegate
+
+- (void)gameRequestDialog:(FBSDKGameRequestDialog *)gameRequestDialog
+   didCompleteWithResults:(NSDictionary *)results
+{
+    if (!self.gameRequestDialogCallbackId) {
+        return;
+    }
+
+    NSLog(@"game request dialog did complete");
+    NSLog(@"result::%@", results);
+
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:results];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.gameRequestDialogCallbackId];
+    self.gameRequestDialogCallbackId = nil;
+}
+
+- (void)gameRequestDialogDidCancel:(FBSDKGameRequestDialog *)gameRequestDialog
+{
+    if (!self.gameRequestDialogCallbackId) {
+        return;
+    }
+
+    NSLog(@"game request dialog did cancel");
+
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"User cancelled dialog"];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.gameRequestDialogCallbackId];
+    self.gameRequestDialogCallbackId = nil;
+}
+
+- (void)gameRequestDialog:(FBSDKGameRequestDialog *)gameRequestDialog
+         didFailWithError:(NSError *)error
+{
+    if (!self.gameRequestDialogCallbackId) {
+        return;
+    }
+
+    NSLog(@"game request dialog did fail");
+    NSLog(@"error::%@", error);
+
+    CDVPluginResult* pluginResult;
+    NSString *message = error.userInfo[FBSDKErrorLocalizedDescriptionKey] ?: @"There was an error making the graph call.";
+    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                     messageAsString:message];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.gameRequestDialogCallbackId];
+    self.gameRequestDialogCallbackId = nil;
 }
 
 @end
