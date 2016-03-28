@@ -2,6 +2,7 @@ package org.apache.cordova.facebook;
 
 import android.content.Intent;
 import android.net.Uri;
+import java.net.URI;
 import android.os.Bundle;
 import android.util.Log;
 import android.graphics.Bitmap;
@@ -9,6 +10,7 @@ import android.graphics.BitmapFactory;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.Media;
 import android.os.NetworkOnMainThreadException;
+import java.io.FileNotFoundException;
 import android.os.AsyncTask;
 import android.os.Environment;
 import java.io.OutputStream;
@@ -734,35 +736,6 @@ public class ConnectPlugin extends CordovaPlugin {
         }
     }
 
-    private Bitmap getBitmapFromURL(String src) {
-        try {
-            URL url = new URL(src);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setDoInput(true);
-            connection.connect();
-            InputStream input = connection.getInputStream();
-            Bitmap myBitmap = BitmapFactory.decodeStream(input);
-
-            Log.d(TAG, "getBitmapFromURL: bitmap url generated");
-
-            return myBitmap;
-        // } catch (NetworkOnMainThreadException ne) {
-            // Log.e(TAG, "getBitmapFromURL: Exception ToString - "+ ne.toString());
-            // Log.e(TAG, "getBitmapFromURL: Exception Message - "+ ne.getMessage());
-            // Log.e(TAG, "getBitmapFromURL: Exception Stack Trace - "+ Log.getStackTrace(ne));
-
-            // Log exception
-            // return null;
-        } catch (IOException e) {
-            Log.e(TAG, "getBitmapFromURL: Exception ToString - "+ e.toString());
-            // Log.e(TAG, "getBitmapFromURL: Exception Message - "+ e.getMessage());
-            // Log.e(TAG, "getBitmapFromURL: Exception Stack Trace - "+ e.getStackTrace());
-
-            // Log exception
-            return null;
-        }
-    }
-
     private void executeShareOnMessenger(JSONArray args, CallbackContext callbackContext) throws JSONException {
         Log.d(TAG, "Share on Messenger");
 
@@ -781,43 +754,38 @@ public class ConnectPlugin extends CordovaPlugin {
             Log.e(TAG, "exception while creating bitmap: "+ e);
         }
 
-        // Bitmap bmp = getBitmapFromURL(filePath);
-        // Bitmap bmp = null;
         if (bmp == null) {
             callbackContext.error("could not generate Bitmap from Image File");
         } else {
-            Log.d(TAG, "bitmap created");
-            
             String externalpath = Environment.getExternalStorageDirectory().toString();
             Log.d(TAG, "external directory: "+ externalpath);
 
             OutputStream fOut = null;
 
-            String newPath = "";
+            String absolutePath = "";
             try {
-                Log.e(TAG, "inside save file method");
-
                 File file = new File(externalpath, senderName+".png");
+
+                Log.e(TAG, "file absolute path: "+ file.getAbsolutePath());
+                absolutePath = file.getAbsolutePath();
+
                 fOut = new FileOutputStream(file);
                 bmp.compress(Bitmap.CompressFormat.PNG, 85, fOut); // saving the Bitmap to a file compressed as a JPEG with 85% compression rate
                 fOut.flush();
                 fOut.close(); // do not forget to close the stream
 
-                 newPath = Images.Media.insertImage(cordova.getActivity().getContentResolver(), file.getAbsolutePath(), file.getName(), file.getName());
+                Log.e(TAG, "file name: "+ file.getName());
+            } catch (FileNotFoundException fe) {
+                Log.e(TAG, "file not found while saving image: "+ fe);
             } catch (Exception e) {
-                Log.e(TAG, "exception while saving bitmap: "+ e);
+                Log.e(TAG, "exception while saving image: "+ e);
             }
 
-            Log.d(TAG, "external path: "+ newPath);
+            Log.d(TAG, "external file path: "+ absolutePath);
 
-            // String path = Images.Media.insertImage(cordova.getActivity().getContentResolver(), bmp, metadata, null);
-            // String path = file.getAbsolutePath();
+            URI uri1 = URI.create("file://"+ absolutePath);
 
-            Log.d(TAG, "executeShareOnMessenger: file path - "+ newPath);
-
-            Uri imageURI = Uri.parse(newPath);
-
-            // Uri imageURI = Uri.parse(filePath);
+            Uri imageURI = Uri.parse(uri1.toString());
 
             Log.d(TAG, "start - sharing image on Facebook Messenger");
 
@@ -1146,19 +1114,10 @@ public class ConnectPlugin extends CordovaPlugin {
                 Log.d(TAG, "getBitmapFromURL: bitmap url generated");
 
                 return myBitmap;
-            // } catch (NetworkOnMainThreadException ne) {
-                // Log.e(TAG, "getBitmapFromURL: Exception ToString - "+ ne.toString());
-                // Log.e(TAG, "getBitmapFromURL: Exception Message - "+ ne.getMessage());
-                // Log.e(TAG, "getBitmapFromURL: Exception Stack Trace - "+ Log.getStackTrace(ne));
-
-                // Log exception
-                // return null;
             } catch (IOException e) {
-                Log.e(TAG, "getBitmapFromURL: Exception - "+ e.toString());
-                // Log.e(TAG, "getBitmapFromURL: Exception Message - "+ e.getMessage());
-                // Log.e(TAG, "getBitmapFromURL: Exception Stack Trace - "+ e.getStackTrace());
-
                 // Log exception
+                Log.e(TAG, "getBitmapFromURL: Exception - "+ e.toString());
+
                 return null;
             }
         }
