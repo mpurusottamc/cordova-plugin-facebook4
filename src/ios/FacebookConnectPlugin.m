@@ -319,22 +319,33 @@ enum MessengerShareMode shareMode;
 - (IBAction)shareOnMessenger:(CDVInvokedUrlCommand *)command {
     CDVPluginResult* pluginResult = nil;
 
-    // NSString *filePath = @"https://www.outreachplatform.com/assets/outreach-logo-327cbd762e5bacf48a8b3ccc80fb3aa114048ac439d573fd54d6ce6819ddd5ec.png";
+    if ([command.arguments count] == 0) {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                         messageAsString:@"No image provided"];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        return;
+    }
+    
     NSString *filePath = [command.arguments objectAtIndex:0];
     NSString *senderName = [command.arguments objectAtIndex:1];
-    
-    NSURL *str = [[NSURL alloc] initWithString:filePath];
-    
-    NSData *imgData = [[NSData alloc] initWithContentsOfURL: str];
-    UIImage* image = [[UIImage alloc] initWithData: imgData];
+        
     NSString *metadata = senderName;
-
     FBSDKMessengerShareOptions *options = [[FBSDKMessengerShareOptions alloc] init];
-    // options.renderAsSticker = YES;
+    // options.renderAsSticker = YES;   // Might be useful for animated gif data
     options.metadata = metadata;
     options.contextOverride = [self getContextForShareMode];
     
-    [FBSDKMessengerSharer shareImage:image withOptions:options];
+    // NSURL *str = [[NSURL alloc] initWithString:filePath];    
+    // NSData *imgData = [[NSData alloc] initWithContentsOfURL: str];
+    // UIImage* image = [[UIImage alloc] initWithData: imgData];
+    // [FBSDKMessengerSharer shareImage:image withOptions:options];
+
+    NSData *gifData = [NSData initWithContentsOfURL:filepath];
+    [FBSDKMessengerSharer shareAnimatedGIF:gifData withOptions:options];
+
+    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void) showDialog:(CDVInvokedUrlCommand*)command

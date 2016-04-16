@@ -736,6 +736,43 @@ public class ConnectPlugin extends CordovaPlugin {
         }
     }
 
+    private String getFileExtension(String fileName) {
+        String extension = "";
+
+        int i = fileName.lastIndexOf('.');
+        if (i > 0) {
+            extension = fileName.substring(i+1);
+        }
+
+        return extension;
+    }
+
+    private String getMimeType(string extension) {
+        String mimeType = "image/gif";
+
+        switch (extension) {
+            case 'png':
+                mimeType = "image/png";
+                break;
+            case 'gif':
+                mimeType = "image/gif";
+                break;
+        }
+
+        return mimeType;
+    }
+
+    public byte[] generateGIF(Bitmap bmp) {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        AnimatedGifEncoder encoder = new AnimatedGifEncoder();
+        
+        encoder.start(bos);
+        encoder.addFrame(bmp);
+        encoder.finish();
+        
+        return bos.toByteArray();
+    }
+
     private void executeShareOnMessenger(JSONArray args, CallbackContext callbackContext) throws JSONException {
         Log.d(TAG, "Share on Messenger");
 
@@ -745,7 +782,8 @@ public class ConnectPlugin extends CordovaPlugin {
         Log.d(TAG, "executeShareOnMessenger: filePath - "+ filePath + " senderName - "+ senderName);
 
         String metadata = senderName;
-        String mimeType = "image/png";
+        String fileExtension = getFileExtension(filePath);
+        String mimeType = getMimeType(fileExtension);
 
         Bitmap bmp = null;
         try {
@@ -764,13 +802,18 @@ public class ConnectPlugin extends CordovaPlugin {
 
             String absolutePath = "";
             try {
-                File file = new File(externalpath, senderName+".png");
+                File file = new File(externalpath, senderName + fileExtension);
 
                 Log.e(TAG, "file absolute path: "+ file.getAbsolutePath());
                 absolutePath = file.getAbsolutePath();
 
                 fOut = new FileOutputStream(file);
-                bmp.compress(Bitmap.CompressFormat.PNG, 85, fOut); // saving the Bitmap to a file compressed as a JPEG with 85% compression rate
+                if (fileExtension == "png") {
+                    bmp.compress(Bitmap.CompressFormat.PNG, 85, fOut); // saving the Bitmap to a file compressed as a JPEG with 85% compression rate    
+                } else if (fileExtension == "gif") {
+                    fOut.write(generateGIF(bmp));
+                }
+                
                 fOut.flush();
                 fOut.close(); // do not forget to close the stream
 
