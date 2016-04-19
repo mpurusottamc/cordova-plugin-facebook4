@@ -335,12 +335,13 @@ enum MessengerShareMode shareMode;
     options.metadata = metadata;
     options.contextOverride = [self getContextForShareMode];
     
-    // NSURL *str = [[NSURL alloc] initWithString:filePath];    
+    NSURL *str = [[NSURL alloc] initWithString:filePath];
+
     // NSData *imgData = [[NSData alloc] initWithContentsOfURL: str];
     // UIImage* image = [[UIImage alloc] initWithData: imgData];
     // [FBSDKMessengerSharer shareImage:image withOptions:options];
 
-    NSData *gifData = [NSData initWithContentsOfURL:filepath];
+    NSData *gifData = [[NSData alloc] initWithContentsOfURL: str];
     [FBSDKMessengerSharer shareAnimatedGIF:gifData withOptions:options];
 
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];

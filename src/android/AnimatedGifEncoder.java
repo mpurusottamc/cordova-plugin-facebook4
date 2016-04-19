@@ -1,3 +1,7 @@
+package org.apache.cordova.facebook;
+
+// http://www.jappit.com/blog/2008/12/04/j2me-animated-gif-encoder/
+// https://github.com/nbadal/android-gif-encoder/blob/master/GifEncoder.java
 import java.io.IOException;
 import java.io.OutputStream;
 

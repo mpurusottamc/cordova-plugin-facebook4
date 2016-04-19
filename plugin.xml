@@ -65,6 +65,7 @@
 
         <!-- cordova plugin src files -->
         <source-file src="src/android/ConnectPlugin.java" target-dir="src/org/apache/cordova/facebook" />
+        <source-file src="src/android/AnimatedGifEncoder.java" target-dir="src/org/apache/cordova/facebook" />
 
     </platform>
 

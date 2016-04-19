@@ -16,6 +16,7 @@ import android.os.Environment;
 import java.io.OutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
@@ -747,16 +748,13 @@ public class ConnectPlugin extends CordovaPlugin {
         return extension;
     }
 
-    private String getMimeType(string extension) {
+    private String getMimeType(String extension) {
         String mimeType = "image/gif";
 
-        switch (extension) {
-            case 'png':
-                mimeType = "image/png";
-                break;
-            case 'gif':
-                mimeType = "image/gif";
-                break;
+        if (extension.toUpperCase() == "PNG") {
+            mimeType = "image/png";
+        } else {
+            mimeType = "image/gif";
         }
 
         return mimeType;
