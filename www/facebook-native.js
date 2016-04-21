@@ -20,6 +20,10 @@ exports.shareOnMessenger = function login (params, s, f) {
   exec(s, f, 'FacebookConnectPlugin', 'shareOnMessenger', params)
 }
 
+exports.isFBMessengerInstalled = function login (s, f) {
+  exec(s, f, 'FacebookConnectPlugin', 'isFBMessengerInstalled')
+}
+
 exports.logEvent = function logEvent (name, params, valueToSum, s, f) {
   // Prevent NSNulls getting into iOS, messes up our [command.argument count]
   if (!params && !valueToSum) {
