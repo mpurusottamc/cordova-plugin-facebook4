@@ -139,6 +139,8 @@
 
         <config-file target="*-Info.plist" parent="LSApplicationQueriesSchemes">
           <array>
+            <string>fb</string>
+            <string>fb-messenger</string>
             <string>fbapi</string>
             <string>fbauth</string>
             <string>fbauth2</string>

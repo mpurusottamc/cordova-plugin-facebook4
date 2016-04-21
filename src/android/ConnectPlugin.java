@@ -17,6 +17,8 @@ import java.io.OutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.BufferedInputStream;
+import java.util.UUID;
 
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
@@ -82,6 +84,7 @@ public class ConnectPlugin extends CordovaPlugin {
     private static final String PUBLISH_PERMISSION_PREFIX = "publish";
     private static final String MANAGE_PERMISSION_PREFIX = "manage";
     private static final int REQUEST_CODE_SHARE_TO_MESSENGER = 1;
+    private static final int BUFFER_SIZE = 1024;
     
     @SuppressWarnings("serial")
     private static final Set<String> OTHER_PUBLISH_PERMISSIONS = new HashSet<String>() {
@@ -584,8 +587,8 @@ public class ConnectPlugin extends CordovaPlugin {
             actionBuilder.putObject(objectType, objectBuilder.build());
 
             ShareOpenGraphContent.Builder content = new ShareOpenGraphContent.Builder()
-                    .setPreviewPropertyName(objectType)
-                    .setAction(actionBuilder.build());
+            .setPreviewPropertyName(objectType)
+            .setAction(actionBuilder.build());
 
             shareDialog.show(content.build());
 
@@ -772,7 +775,7 @@ public class ConnectPlugin extends CordovaPlugin {
     }
 
     private void executeShareOnMessenger(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Log.d(TAG, "Share on Messenger");
+        Log.d(TAG, "Share on Messenger - just started");
 
         String filePath = args.getString(0);
         String senderName = args.getString(1);
@@ -783,48 +786,19 @@ public class ConnectPlugin extends CordovaPlugin {
         String fileExtension = getFileExtension(filePath);
         String mimeType = getMimeType(fileExtension);
 
-        Bitmap bmp = null;
+        String savedFilePath = "";
         try {
-            bmp = new DownloadImageTask().execute(filePath).get(5000, TimeUnit.MILLISECONDS);
+            savedFilePath = new DownloadImageTask().execute(filePath).get(5000, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             Log.e(TAG, "exception while creating bitmap: "+ e);
         }
 
-        if (bmp == null) {
-            callbackContext.error("could not generate Bitmap from Image File");
+        if (savedFilePath == "") {
+            callbackContext.error("could not save file");
         } else {
-            String externalpath = Environment.getExternalStorageDirectory().toString();
-            Log.d(TAG, "external directory: "+ externalpath);
+            Log.d(TAG, "external file path: "+ savedFilePath);
 
-            OutputStream fOut = null;
-
-            String absolutePath = "";
-            try {
-                File file = new File(externalpath, senderName + fileExtension);
-
-                Log.e(TAG, "file absolute path: "+ file.getAbsolutePath());
-                absolutePath = file.getAbsolutePath();
-
-                fOut = new FileOutputStream(file);
-                if (fileExtension == "png") {
-                    bmp.compress(Bitmap.CompressFormat.PNG, 85, fOut); // saving the Bitmap to a file compressed as a JPEG with 85% compression rate    
-                } else if (fileExtension == "gif") {
-                    fOut.write(generateGIF(bmp));
-                }
-                
-                fOut.flush();
-                fOut.close(); // do not forget to close the stream
-
-                Log.e(TAG, "file name: "+ file.getName());
-            } catch (FileNotFoundException fe) {
-                Log.e(TAG, "file not found while saving image: "+ fe);
-            } catch (Exception e) {
-                Log.e(TAG, "exception while saving image: "+ e);
-            }
-
-            Log.d(TAG, "external file path: "+ absolutePath);
-
-            URI uri1 = URI.create("file://"+ absolutePath);
+            URI uri1 = URI.create("file://"+ savedFilePath);
 
             Uri imageURI = Uri.parse(uri1.toString());
 
@@ -998,9 +972,9 @@ public class ConnectPlugin extends CordovaPlugin {
      */
     private boolean isPublishPermission(String permission) {
         return permission != null &&
-                (permission.startsWith(PUBLISH_PERMISSION_PREFIX) ||
-                permission.startsWith(MANAGE_PERMISSION_PREFIX) ||
-                OTHER_PUBLISH_PERMISSIONS.contains(permission));
+        (permission.startsWith(PUBLISH_PERMISSION_PREFIX) ||
+            permission.startsWith(MANAGE_PERMISSION_PREFIX) ||
+            OTHER_PUBLISH_PERMISSIONS.contains(permission));
     }
 
     /**
@@ -1014,19 +988,19 @@ public class ConnectPlugin extends CordovaPlugin {
             Date today = new Date();
             long expiresTimeInterval = (accessToken.getExpires().getTime() - today.getTime()) / 1000L;
             response = "{"
-                + "\"status\": \"connected\","
-                + "\"authResponse\": {"
-                + "\"accessToken\": \"" + accessToken.getToken() + "\","
-                + "\"expiresIn\": \"" + Math.max(expiresTimeInterval, 0) + "\","
-                + "\"session_key\": true,"
-                + "\"sig\": \"...\","
-                + "\"userID\": \"" + accessToken.getUserId() + "\""
-                + "}"
-                + "}";
+            + "\"status\": \"connected\","
+            + "\"authResponse\": {"
+            + "\"accessToken\": \"" + accessToken.getToken() + "\","
+            + "\"expiresIn\": \"" + Math.max(expiresTimeInterval, 0) + "\","
+            + "\"session_key\": true,"
+            + "\"sig\": \"...\","
+            + "\"userID\": \"" + accessToken.getUserId() + "\""
+            + "}"
+            + "}";
         } else {
             response = "{"
-                + "\"status\": \"unknown\""
-                + "}";
+            + "\"status\": \"unknown\""
+            + "}";
         }
         try {
             return new JSONObject(response);
@@ -1039,9 +1013,9 @@ public class ConnectPlugin extends CordovaPlugin {
     public JSONObject getFacebookRequestErrorResponse(FacebookRequestError error) {
 
         String response = "{"
-            + "\"errorCode\": \"" + error.getErrorCode() + "\","
-            + "\"errorType\": \"" + error.getErrorType() + "\","
-            + "\"errorMessage\": \"" + error.getErrorMessage() + "\"";
+        + "\"errorCode\": \"" + error.getErrorCode() + "\","
+        + "\"errorType\": \"" + error.getErrorType() + "\","
+        + "\"errorMessage\": \"" + error.getErrorMessage() + "\"";
 
         if (error.getErrorUserMessage() != null) {
             response += ",\"errorUserMessage\": \"" + error.getErrorUserMessage() + "\"";
@@ -1139,25 +1113,62 @@ public class ConnectPlugin extends CordovaPlugin {
         } catch (Exception ignored) {
 
         }
-        return null;
+    return null;
     }
 
-    private class DownloadImageTask extends AsyncTask<String, Integer, Bitmap> {
-        protected Bitmap doInBackground(String... imageURLs) {
+    private class DownloadImageTask extends AsyncTask<String, Integer, String> {
+        protected String doInBackground(String... imageURLs) {
             try {
                 URL url = new URL(imageURLs[0]);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setDoInput(true);
-                connection.connect();
-                InputStream input = connection.getInputStream();
-                Bitmap myBitmap = BitmapFactory.decodeStream(input);
+                HttpURLConnection c = (HttpURLConnection) url
+                .openConnection();
+                c.setConnectTimeout(1000000);
+                c.setDoInput(true);
+                c.connect();
 
-                Log.d(TAG, "getBitmapFromURL: bitmap url generated");
+                String fileName = UUID.randomUUID().toString().replace("-","");
+                int lenghtOfFile = c.getContentLength();
+                Log.i("fileSize", lenghtOfFile + "");
 
-                return myBitmap;
+                File file = new File( Environment.getExternalStorageDirectory() + "/" + Environment.DIRECTORY_DOWNLOADS);
+                file.mkdirs();
+
+                File outputFile = new File(file, fileName + "." + getFileExtension(imageURLs[0]));
+                FileOutputStream fos = new FileOutputStream(outputFile);
+
+                Log.v("Place", "trying...");
+
+                InputStream is = c.getInputStream();
+
+                Log.v("errorPart", c.getURL().toString());
+
+                if (c.getURL().toString().contains("404"))
+                    Log.v("Error", "404 Error");
+
+                Log.v("Place", "1st attempt success");
+
+                int len1 = 0;
+
+                Log.v("Place", "Download started!");
+                
+                byte[] buffer = new byte[BUFFER_SIZE];
+
+                int on = 0;
+                while ((len1 = is.read(buffer,0,BUFFER_SIZE)) != -1) {
+                    fos.write(buffer, 0, len1);
+                    Log.v("is", "running "  + len1);
+                }
+
+                Log.v("Place", "Download Finished!");
+
+                fos.close();
+                is.close();
+
+                Log.d(TAG, "saveFileFromURL: file saved at - "+ file.getAbsolutePath());
+                return outputFile.getAbsolutePath();
             } catch (IOException e) {
-                // Log exception
-                Log.e(TAG, "getBitmapFromURL: Exception - "+ e.toString());
+                    // Log exception
+                Log.e(TAG, "saveFileFromURL: Exception - "+ e.toString());
 
                 return null;
             }
@@ -1167,8 +1178,9 @@ public class ConnectPlugin extends CordovaPlugin {
             Log.i(TAG, "DownloadImageTask - Progress : "+ progress);
         }
 
-        protected void onPostExecute(Bitmap bmp) {
+        protected void onPostExecute(String filePath) {
             Log.d(TAG, "DownloadImageTask onPostExecute: ");
         }
     }
+
 }
